@@ -1,65 +1,113 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useSearch } from "@/hooks/useSearch";
+import { FilterForm } from "@/components/FilterForm";
+import { SearchStatus } from "@/components/SearchStatus";
+import { ErrorBanner } from "@/components/ErrorBanner";
+import { ResultsGrid } from "@/components/ResultsGrid";
+
+export default function HomePage() {
+  const { plans, isSearching, currentQuery, error, search } = useSearch();
+
+  const hasResults = plans.length > 0;
+  const showEmptyHint = !hasResults && !isSearching && !error;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen flex flex-col">
+
+      {/* ── Masthead ── */}
+      <header className="border-b border-line">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="font-serif text-xl text-ink tracking-tight">WCID</span>
+            <span className="text-line text-lg select-none">·</span>
+            <span className="font-sans text-xs text-dust uppercase tracking-widest">Activity Scout</span>
+          </div>
+          <span className="font-sans text-xs text-dust/60 uppercase tracking-widest hidden sm:block">
+            AI&nbsp;Powered
+          </span>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-5xl mx-auto w-full px-6">
+
+        {/* ── Hero ── */}
+        <section className="pt-14 pb-10">
+          <p
+            className="animate-fade-up font-sans text-xs text-terra uppercase tracking-widest font-medium mb-5"
+            style={{ animationDelay: "0ms" }}
+          >
+            What's nearby?
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+          <h1
+            className="animate-fade-up font-serif text-5xl sm:text-6xl md:text-7xl text-ink leading-[1.05] mb-6"
+            style={{ animationDelay: "60ms" }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Discover what<br />
+            <em className="text-forest">you could do.</em>
+          </h1>
+
+          <p
+            className="animate-fade-up font-sans text-base text-dust max-w-md leading-relaxed mb-10"
+            style={{ animationDelay: "120ms" }}
           >
-            Documentation
-          </a>
-        </div>
+            Tell us where you are and what you're after. Our AI agent scouts
+            the web and surfaces the best plans — in real time.
+          </p>
+
+          <div
+            className="animate-fade-up"
+            style={{ animationDelay: "180ms" }}
+          >
+            <FilterForm isSearching={isSearching} onSearch={search} />
+          </div>
+        </section>
+
+        {/* ── Status / Errors ── */}
+        <SearchStatus isSearching={isSearching} currentQuery={currentQuery} />
+        {error && <ErrorBanner message={error} />}
+
+        {/* ── Empty hint ── */}
+        {showEmptyHint && (
+          <section className="py-10 pb-24 text-center animate-fade-in">
+            <div className="inline-block">
+              <p className="font-serif italic text-3xl text-dust/40">
+                Your plans will appear here.
+              </p>
+              <div className="mt-4 h-px w-2/3 mx-auto bg-gradient-to-r from-transparent via-line to-transparent" />
+            </div>
+          </section>
+        )}
+
+        {/* ── Results ── */}
+        {(hasResults || isSearching) && (
+          <section className="pb-20">
+            {hasResults && (
+              <div className="flex items-center gap-4 mb-8">
+                <p className="font-sans text-xs text-dust uppercase tracking-widest whitespace-nowrap">
+                  {plans.length}&nbsp;{plans.length === 1 ? "plan" : "plans"}
+                  {isSearching && (
+                    <span className="text-forest"> — finding more…</span>
+                  )}
+                </p>
+                <div className="flex-1 h-px bg-line" />
+              </div>
+            )}
+            <ResultsGrid plans={plans} isSearching={isSearching} />
+          </section>
+        )}
       </main>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-line mt-auto">
+        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+          <span className="font-serif italic text-dust/50 text-sm">What Can I Do?</span>
+          <span className="font-sans text-xs text-dust/40 uppercase tracking-widest">
+            Scouted&nbsp;by&nbsp;AI
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }
