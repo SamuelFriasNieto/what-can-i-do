@@ -1,8 +1,44 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 interface ErrorBannerProps {
   message: string;
+  retryAfterSeconds?: number | null;
 }
 
-export function ErrorBanner({ message }: ErrorBannerProps) {
+function formatCountdown(seconds: number): string {
+  if (seconds <= 0) return "now";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m > 0 && s > 0) return `${m}m ${s}s`;
+  if (m > 0) return `${m}m`;
+  return `${s}s`;
+}
+
+export function ErrorBanner({ message, retryAfterSeconds }: ErrorBannerProps) {
+  const [remaining, setRemaining] = useState<number | null>(
+    retryAfterSeconds ?? null
+  );
+
+  useEffect(() => {
+    if (!retryAfterSeconds || retryAfterSeconds <= 0) {
+      setRemaining(null);
+      return;
+    }
+    setRemaining(retryAfterSeconds);
+    const interval = setInterval(() => {
+      setRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [retryAfterSeconds]);
+
   return (
     <div
       role="alert"
@@ -30,7 +66,23 @@ export function ErrorBanner({ message }: ErrorBannerProps) {
         />
         <circle cx="7.5" cy="10.5" r="0.75" fill="currentColor" />
       </svg>
-      <p className="font-sans text-sm text-ink/75 leading-relaxed">{message}</p>
+      <div className="flex flex-col gap-1">
+        <p className="font-sans text-sm text-ink/75 leading-relaxed">{message}</p>
+        {remaining !== null && (
+          <p className="font-sans text-xs text-terra/80">
+            {remaining > 0 ? (
+              <>
+                Try again in{" "}
+                <span className="font-medium tabular-nums">
+                  {formatCountdown(remaining)}
+                </span>
+              </>
+            ) : (
+              "You can try again now."
+            )}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { ResultsGrid } from "@/components/ResultsGrid";
 
 export default function HomePage() {
-  const { plans, isSearching, currentQuery, error, search } = useSearch();
+  const { plans, isSearching, currentQuery, error, retryAfterSeconds, search } = useSearch();
 
   const hasResults = plans.length > 0;
   const showEmptyHint = !hasResults && !isSearching && !error;
@@ -66,7 +66,7 @@ export default function HomePage() {
 
         {/* ── Status / Errors ── */}
         <SearchStatus isSearching={isSearching} currentQuery={currentQuery} />
-        {error && <ErrorBanner message={error} />}
+        {error && <ErrorBanner message={error} retryAfterSeconds={retryAfterSeconds} />}
 
         {/* ── Empty hint ── */}
         {showEmptyHint && (

@@ -8,6 +8,7 @@ interface UseSearchReturn {
   isSearching: boolean;
   currentQuery: string | null;
   error: string | null;
+  retryAfterSeconds: number | null;
   search: (filters: SearchFilters) => void;
   reset: () => void;
 }
@@ -17,6 +18,7 @@ export function useSearch(): UseSearchReturn {
   const [isSearching, setIsSearching] = useState(false);
   const [currentQuery, setCurrentQuery] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const search = useCallback(async (filters: SearchFilters) => {
@@ -31,6 +33,7 @@ export function useSearch(): UseSearchReturn {
     // Reset state for new search
     setPlans([]);
     setError(null);
+    setRetryAfterSeconds(null);
     setIsSearching(true);
     setCurrentQuery(null);
 
@@ -87,6 +90,7 @@ export function useSearch(): UseSearchReturn {
                 break;
               case "error":
                 setError(event.message);
+                setRetryAfterSeconds(event.retryAfterSeconds ?? null);
                 setIsSearching(false);
                 setCurrentQuery(null);
                 break;
@@ -131,7 +135,8 @@ export function useSearch(): UseSearchReturn {
     setIsSearching(false);
     setCurrentQuery(null);
     setError(null);
+    setRetryAfterSeconds(null);
   }, []);
 
-  return { plans, isSearching, currentQuery, error, search, reset };
+  return { plans, isSearching, currentQuery, error, retryAfterSeconds, search, reset };
 }

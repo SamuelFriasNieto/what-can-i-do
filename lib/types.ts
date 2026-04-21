@@ -38,4 +38,4 @@ export type AgentStreamEvent =
   | { type: "searching"; query: string }
   | { type: "plan_found"; plan: Plan }
   | { type: "done"; totalPlans: number }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string; retryAfterSeconds?: number };

@@ -6,6 +6,51 @@ import { SYSTEM_PROMPT } from "./prompts";
 
 const MAX_ITERATIONS = 8;
 
+function parseResetDuration(header: string | null | undefined): number | undefined {
+  if (!header) return undefined;
+  let seconds = 0;
+  const h = header.match(/(\d+(?:\.\d+)?)h/);
+  const m = header.match(/(\d+(?:\.\d+)?)m(?!s)/);
+  const s = header.match(/(\d+(?:\.\d+)?)s/);
+  if (h) seconds += parseFloat(h[1]) * 3600;
+  if (m) seconds += parseFloat(m[1]) * 60;
+  if (s) seconds += parseFloat(s[1]);
+  return seconds > 0 ? Math.ceil(seconds) : undefined;
+}
+
+function extractRetryAfter(err: InstanceType<typeof Groq.APIError>): number | undefined {
+  const h = err.headers;
+  if (!h) return undefined;
+
+  // Log all headers so we can debug which one carries the true reset time
+  const headerMap: Record<string, string> = {};
+  if (typeof h.forEach === "function") {
+    h.forEach((val: string, key: string) => { headerMap[key] = val; });
+  }
+  console.error("[groq] 429 headers:", JSON.stringify(headerMap));
+
+  // Standard Retry-After header (value in seconds)
+  const retryAfter = h.get?.("retry-after");
+  if (retryAfter) {
+    const n = parseInt(retryAfter, 10);
+    if (!isNaN(n) && n > 0) return n;
+  }
+
+  // Collect all x-ratelimit-reset-* headers and return the largest value
+  // (covers per-minute, per-hour, per-day windows simultaneously)
+  const resetHeaders = [
+    h.get?.("x-ratelimit-reset-requests"),
+    h.get?.("x-ratelimit-reset-tokens"),
+    h.get?.("x-ratelimit-reset-requests-day"),
+    h.get?.("x-ratelimit-reset-tokens-day"),
+  ];
+  const times = resetHeaders
+    .map(parseResetDuration)
+    .filter((t): t is number => t !== undefined);
+
+  return times.length > 0 ? Math.max(...times) : undefined;
+}
+
 const tools: Groq.Chat.ChatCompletionTool[] = [
   {
     type: "function",
@@ -127,12 +172,16 @@ export async function* runAgent(
       });
     } catch (err) {
       console.error("[groq] completions error:", err);
-      const is429 = err instanceof Error && err.message.includes("429");
+      const is429 = err instanceof Groq.APIError && err.status === 429;
+      const retryAfterSeconds = is429
+        ? extractRetryAfter(err as InstanceType<typeof Groq.APIError>)
+        : undefined;
       yield {
         type: "error",
         message: is429
-          ? "AI rate limit hit. Please wait a moment and try again."
+          ? "AI rate limit reached. Please wait before trying again."
           : "Something went wrong while searching. Please try again.",
+        retryAfterSeconds,
       };
       return;
     }
@@ -204,7 +253,7 @@ export async function* runAgent(
           category,
           estimatedPrice: (args.estimatedPrice as string) ?? "",
           duration: (args.duration as string) ?? "",
-          imageUrl: getImageUrl(category),
+          imageUrl: await getImageUrl(category),
           sourceUrl: validatedSourceUrl,
           sourceName: ((args.sourceName as string) ?? "").slice(0, 40),
         };
